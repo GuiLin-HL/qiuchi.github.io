@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>To My Only One</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Noto+Serif+SC:wght@400;700&display=swap');
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #000;
+            font-family: 'Noto Serif SC', serif;
+            height: 100vh;
+            width: 100vw;
+            user-select: none;
+        }
+
+        /* 画布背景 */
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* 初始引导层 */
+        .intro-layer {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            text-align: center;
+            transition: opacity 1s;
+        }
+
+        .start-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: #fff;
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            border-radius: 50px;
+            cursor: pointer;
+            backdrop-filter: blur(5px);
+            transition: all 0.3s;
+            letter-spacing: 2px;
+            box-shadow: 0 0 15px rgba(255, 105, 180, 0.3);
+            font-family: 'Noto Serif SC', serif;
+        }
+
+        .start-btn:hover {
+            background: rgba(255, 105, 180, 0.3);
+            transform: scale(1.05);
+            box-shadow: 0 0 30px rgba(255, 105, 180, 0.6);
+        }
+
+        /* 弹出的卡片样式 */
+        .love-card {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.85);
+            padding: 15px 25px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            font-size: 1rem;
+            color: #333;
+            z-index: 5;
+            opacity: 0;
+            transform: scale(0.5);
+            animation: popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            max-width: 250px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.9);
+            font-family: 'Dancing Script', cursive; /* 使用手写体 */
+            font-weight: bold;
+        }
+
+        /* 不同的卡片颜色主题 */
+        .card-pink { background: rgba(255, 230, 235, 0.9); color: #d63384; }
+        .card-white { background: rgba(255, 255, 255, 0.9); color: #444; }
+        .card-purple { background: rgba(240, 230, 255, 0.9); color: #6f42c1; }
+
+        @keyframes popIn {
+            to { opacity: 1; transform: scale(1) rotate(var(--r)); }
+        }
+
+        /* 最终表白弹窗 */
+        .final-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.8);
+            width: 90%;
+            max-width: 400px;
+            background: rgba(20, 20, 20, 0.95);
+            border: 1px solid rgba(255, 105, 180, 0.5);
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            box-shadow: 0 0 50px rgba(255, 105, 180, 0.4);
+            transition: all 0.5s ease;
+            backdrop-filter: blur(20px);
+        }
+
+        .final-modal.show {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+            pointer-events: auto;
+        }
+
+        .final-modal h2 {
+            color: #fff;
+            margin-bottom: 30px;
+            font-weight: 300;
+            font-size: 1.8rem;
+            line-height: 1.5;
+        }
+        
+        .highlight {
+            color: #ff69b4;
+            font-weight: bold;
+            font-family: 'Dancing Script', cursive;
+            font-size: 2.2rem;
+            display: block;
+            margin-top: 10px;
+        }
+
+        .btn-group {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 30px;
+            position: relative;
+            height: 60px; /* 预留空间给按钮跑动 */
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border-radius: 30px;
+            border: none;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: 0.3s;
+            font-family: 'Noto Serif SC', serif;
+        }
+
+        .btn-yes {
+            background: linear-gradient(45deg, #ff69b4, #ff1493);
+            color: white;
+            box-shadow: 0 5px 15px rgba(255, 20, 147, 0.4);
+        }
+        .btn-yes:hover { transform: scale(1.1); }
+
+        .btn-no {
+            background: #444;
+            color: #aaa;
+            position: absolute; /* 为了方便移动 */
+        }
+
+        /* 成功后的全屏覆盖 */
+        .overlay-success {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 1s;
+        }
+        .overlay-success.active { opacity: 1; pointer-events: auto; }
+        .success-text {
+            color: #fff;
+            font-size: 3rem;
+            font-family: 'Dancing Script', cursive;
+            text-shadow: 0 0 20px #ff69b4;
+            animation: pulse 1s infinite alternate;
+        }
+
+        @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.1); } }
+    </style>
+</head>
+<body>
+
+    <canvas id="heartCanvas"></canvas>
+
+    <!-- 第一步：开始按钮 -->
+    <div class="intro-layer" id="introLayer">
+        <button class="start-btn" onclick="startJourney()">点击开启奇妙之旅</button>
+    </div>
+
+    <!-- 第三步：最终弹窗 -->
+    <div class="final-modal" id="finalModal">
+        <h2>
+            其实我想说很久了...<br>
+            从遇见你的那一刻起<br>
+            <span class="highlight">你愿意做我女朋友吗？</span>
+        </h2>
+        <div class="btn-group">
+            <button class="btn btn-yes" onclick="sheSaidYes()">我愿意 ❤</button>
+            <button class="btn btn-no" id="noBtn" onmouseover="moveButton()" onclick="moveButton()">再想想</button>
+        </div>
+    </div>
+
+    <!-- 成功后的画面 -->
+    <div class="overlay-success" id="successOverlay">
+        <div class="success-text">余生请多指教 ❤</div>
+    </div>
+
+    <script>
+        // --- 1. 粒子爱心背景 (复用并优化) ---
+        const canvas = document.getElementById('heartCanvas');
+        const ctx = canvas.getContext('2d');
+        let width, height;
+        let particles = [];
+        
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        function getHeartPoint(t) {
+            const x = 16 * Math.pow(Math.sin(t), 3);
+            const y = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
+            return { x, y };
+        }
+
+        class Particle {
+            constructor() { this.init(); }
+            init() {
+                let t = Math.random() * Math.PI * 2;
+                let p = getHeartPoint(t);
+                let zDist = (Math.random() - 0.5) * 5; 
+                this.ox = p.x * 12 + (Math.random()-0.5)*5; // 稍微改小一点比例适应背景
+                this.oy = p.y * 12 + (Math.random()-0.5)*5;
+                this.oz = zDist * 10;
+                this.x = this.ox; this.y = this.oy; this.z = this.oz;
+                this.size = Math.random() * 2 + 0.5;
+                const colors = ['#ffb6c1', '#ff69b4', '#dda0dd', '#ffffff'];
+                this.color = colors[Math.floor(Math.random() * colors.length)];
+            }
+            update(time, mouseX, mouseY) {
+                const beat = Math.sin(time * 3) * 0.1 + 1; 
+                let x1 = this.ox * beat;
+                let y1 = this.oy * beat;
+                let z1 = this.oz * beat;
+                // 自动旋转 + 鼠标微调
+                let rotY = time * 0.2 + mouseX * 0.5;
+                let rotX = mouseY * 0.5;
+                
+                let x2 = x1 * Math.cos(rotY) - z1 * Math.sin(rotY);
+                let z2 = z1 * Math.cos(rotY) + x1 * Math.sin(rotY);
+                let y2 = y1;
+
+                let fov = 400;
+                let scale = fov / (fov + z2);
+                this.x = x2 * scale + width / 2;
+                this.y = y2 * scale + height / 2;
+                this.scale = scale;
+                this.alpha = 1;
+            }
+            draw() {
+                ctx.globalAlpha = this.alpha;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size * this.scale, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+            }
+        }
+
+        for(let i=0; i<1200; i++) particles.push(new Particle());
+
+        let time = 0;
+        let mouseX = 0, mouseY = 0;
+        document.addEventListener('mousemove', e => {
+            mouseX = (e.clientX - width/2) * 0.001;
+            mouseY = (e.clientY - height/2) * 0.001;
+        });
+
+        function animate() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+            ctx.fillRect(0, 0, width, height);
+            time += 0.01;
+            particles.forEach(p => { p.update(time, mouseX, mouseY); p.draw(); });
+            requestAnimationFrame(animate);
+        }
+        animate();
+
+
+        // --- 2. 交互逻辑：表白话语库 ---
+        // 你可以根据实际情况修改这里的文案
+        const loveMessages = [
+            "第一次见你，我的世界就亮了",
+            "喜欢你笑起来眼睛弯弯的样子",
+            "想和你一起吃很多顿饭",
+            "所有的温柔都想给你",
+            "想牵着你的手去吹晚风",
+            "遇见你，是所有故事的开始",
+            "你是我最想留住的幸运",
+            "想把好心情都分给你",
+            "今晚月色真美，风也温柔",
+            "你的每个小表情我都记得",
+            "想做你的依靠",
+            "不止是喜欢，还有深爱",
+            "我的未来计划里，全是你",
+            "想和你一起看遍世间繁华",
+            "你的声音 是我听过最美的旋律",
+            "想在每个平凡的日子里 都有你在身边",
+            "喜欢你认真做事时专注的神情",
+            "愿所有的美好 都恰逢其时地遇见你",
+            "想和你分享每一个日出日落",
+            "你的存在 让我的生活有了色彩",
+            "想陪你走过四季更迭 岁月漫长",
+            "喜欢你身上淡淡的香味",
+            "遇见你之前 我没想过会这么喜欢一个人",
+            "想成为那个能让你开心的人",
+            "你的笑容 足以治愈我所有的不开心",
+            "想和你拥有一个温暖的小家",
+            "喜欢听你讲话 哪怕是最普通的话题",
+            "你是我在人海中 一眼就能认出的人",
+            "想把我的全世界都指给你看",
+            "有你在的日子 连空气都是甜的",
+            "喜欢你孩子般纯真的眼神",
+            "星光不及你眼中的温柔",
+            "想把所有的小确幸都分享给你",
+            "你的笑容 是我最想守护的风景",
+            "希望能成为你疲惫时的港湾",
+            "不只是心动，更是心安",
+            "想和你一起把日子过成诗",
+            "你的陪伴 让平凡的时光变得珍贵",
+            "喜欢听你 talk about 你喜欢的一切",
+            "愿我所有的温柔 都只为你一人",
+            "想和你一起记录下每一个平凡却闪亮的瞬间",
+            "你的名字 是我听过最动听的词语",
+            "想在未来的每一天 都能和你互道早安晚安",
+            "喜欢你笑起来时眼角的小小弧度",
+            "自从遇见你 我的世界好像都亮了起来",
+            "想和你一起慢慢变老 看尽人间烟火",
+            "你是我藏在心底最深的秘密",
+            "想和你拥有一个温暖的小家",
+            "你的手心 是我最安心的归宿",
+            "不止是现在，还有永远的承诺",
+            "想和你一起品尝人生百味",
+            "你的晚安 是我入睡前最甜的梦",
+            "喜欢你撒娇时软软的声音",
+            "愿岁月不老 我们不散",
+            "想和你一起去很远的地方旅行",
+            "你的背影 也让我觉得无比心动",
+            "想承包你一生的快乐与难过",
+            "喜欢你看着我时认真的眼神",
+            "遇见你之后 我才明白什么是心动",
+            "想和你一起迎接每一个清晨的阳光",
+            "你就是我想要的全部未来",
+            "想和你一起变老 看细水长流",
+            "你就是我想要的 最好的未来",
+            "我们要不要...在一起？"
+        ];
+
+        function startJourney() {
+            // 1. 隐藏开始按钮
+            document.getElementById('introLayer').style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('introLayer').style.display = 'none';
+            }, 1000);
+
+            // 2. 开始弹出卡片序列
+            let delay = 0;
+            // 前几个慢一点，后面越来越快
+            loveMessages.forEach((msg, index) => {
+                let interval = 800 - (index * 40); // 速度越来越快
+                if(interval < 200) interval = 200;
+                
+                delay += interval;
+
+                setTimeout(() => {
+                    createPopup(msg, index);
+                }, delay);
+            });
+
+            // 3. 所有卡片放完后，显示最终弹窗
+            setTimeout(() => {
+                showFinalModal();
+            }, delay + 1500);
+        }
+
+        function createPopup(text, index) {
+            const div = document.createElement('div');
+            div.className = 'love-card';
+            
+            // 随机颜色主题
+            const types = ['card-pink', 'card-white', 'card-purple'];
+            div.classList.add(types[Math.floor(Math.random()*types.length)]);
+            
+            div.innerText = text;
+
+            // 随机位置 (避免太靠边)
+            const x = Math.random() * (window.innerWidth - 200) + 50;
+            const y = Math.random() * (window.innerHeight - 150) + 50;
+            
+            // 随机旋转角度 (-15deg 到 15deg)
+            const rotate = (Math.random() * 30 - 15) + 'deg';
+            div.style.setProperty('--r', rotate);
+            div.style.left = x + 'px';
+            div.style.top = y + 'px';
+
+            document.body.appendChild(div);
+        }
+
+        function showFinalModal() {
+            // 让背景变暗一点，突出弹窗
+            const cards = document.querySelectorAll('.love-card');
+            cards.forEach(card => card.style.transition = 'opacity 1s');
+            cards.forEach(card => card.style.opacity = '0.3');
+            
+            document.getElementById('finalModal').classList.add('show');
+        }
+
+        // --- 3. 调皮的“拒绝”按钮 ---
+        const noBtn = document.getElementById('noBtn');
+        let noBtnMoved = false;
+
+        function moveButton() {
+            const x = (Math.random() - 0.5) * 200;
+            const y = (Math.random() - 0.5) * 200;
+            
+            // 第一次移动时变成绝对定位
+            if (!noBtnMoved) {
+                noBtn.style.position = 'absolute';
+                noBtnMoved = true;
+            }
+            
+            noBtn.style.transform = `translate(${x}px, ${y}px)`;
+            
+            // 稍微改下文字，增加趣味
+            const texts = ["点不到", "再想想？", "真的吗？", "你确定？", "好难点"];
+            noBtn.innerText = texts[Math.floor(Math.random() * texts.length)];
+        }
+
+        // --- 4. 她答应了 ---
+        function sheSaidYes() {
+            document.getElementById('finalModal').classList.remove('show');
+            document.getElementById('successOverlay').classList.add('active');
+            
+            // 让背景的心变成疯狂跳动模式 (加快速度和变色)
+            timeScale = 5; 
+            
+            // 撒花效果 (简单模拟：创建很多个新的彩色粒子掉落)
+            createConfetti();
+        }
+
+        function createConfetti() {
+            // 这里为了代码简洁，我们利用现有的canvas
+            // 实际上会改变粒子的行为让它们像烟花一样散开
+            // 简单处理：将心形打散
+            particles.forEach(p => {
+                p.ox = (Math.random() - 0.5) * 50;
+                p.oy = (Math.random() - 0.5) * 50;
+                p.oz = (Math.random() - 0.5) * 50;
+                p.color = `hsl(${Math.random()*360}, 100%, 70%)`;
+            });
+        }
+
+    </script>
+</body>
+</html>
