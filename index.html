@@ -375,7 +375,51 @@
 
       let currentPage = -1;
       let isFading = false;
+      let isTyping = false;
       let currentAudioId = null;
+
+      // 打字机效果函数
+      async function typeWriter(container, htmlContent) {
+        container.innerHTML = "";
+        const tempDiv = document.createElement("div");
+        tempDiv.innerHTML = htmlContent;
+
+        async function typeNode(sourceNode, targetNode) {
+          if (sourceNode.nodeType === Node.TEXT_NODE) {
+            const text = sourceNode.textContent;
+
+            // 优化：过滤掉模板字符串中产生的纯换行/缩进空白
+            if (text.trim() === "" && text.includes("\n")) {
+              return;
+            }
+
+            // 普通空格（单词间距）或非空文本
+            if (text.trim() === "") {
+              targetNode.textContent += text;
+            } else {
+              for (let i = 0; i < text.length; i++) {
+                targetNode.textContent += text[i];
+                // 打字速度 100ms
+                await new Promise((r) => setTimeout(r, 100));
+              }
+            }
+          } else if (sourceNode.nodeType === Node.ELEMENT_NODE) {
+            const newElement = document.createElement(sourceNode.tagName);
+            Array.from(sourceNode.attributes).forEach((attr) => {
+              newElement.setAttribute(attr.name, attr.value);
+            });
+            targetNode.appendChild(newElement);
+
+            for (let i = 0; i < sourceNode.childNodes.length; i++) {
+              await typeNode(sourceNode.childNodes[i], newElement);
+            }
+          }
+        }
+
+        for (let i = 0; i < tempDiv.childNodes.length; i++) {
+          await typeNode(tempDiv.childNodes[i], container);
+        }
+      }
 
       // BGM 切换逻辑优化
       function switchBgm(newAudioId) {
@@ -425,7 +469,7 @@
       }
 
       function nextPage() {
-        if (isFading) return;
+        if (isFading || isTyping) return;
 
         currentPage++;
 
@@ -440,8 +484,7 @@
         isFading = true;
         textBox.classList.remove("visible");
 
-        setTimeout(() => {
-          textBox.innerHTML = pageData.content;
+        setTimeout(async () => {
           document.body.className = pageData.theme;
 
           // 调用切换函数（如果是同一首 bgm1，函数内部会直接跳过，实现无缝）
@@ -457,10 +500,18 @@
             textBox.style.width = "88%";
           }
 
-          setTimeout(() => {
-            textBox.classList.add("visible");
-            isFading = false;
-          }, 100);
+          // 清空内容准备打字
+          textBox.innerHTML = "";
+          textBox.classList.add("visible");
+
+          // 等待淡入动画稍作进行
+          await new Promise((r) => setTimeout(r, 500));
+
+          isTyping = true;
+          await typeWriter(textBox, pageData.content);
+
+          isTyping = false;
+          isFading = false;
         }, 1500);
       }
     </script>
