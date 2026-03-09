@@ -1,196 +1,468 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D 科技粒子效果</title>
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>雪落三万六千年，终见岸头无我 - 白怜</title>
     <style>
-        /* 基础重置 */
-        body, html {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background-color: #050505; /* 深色背景 */
-            font-family: 'Courier New', Courier, monospace; /* 科技感等宽字体 */
-        }
+      /* 基础样式与全局设置 */
+      body,
+      html {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        font-family: "Noto Serif SC", "STZhongsong", "SimSun", "楷体", serif;
+        letter-spacing: 2px;
+        transition:
+          background-color 3s ease,
+          color 3s ease;
+        cursor: pointer;
+        background-color: #000;
+        color: #fff;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+      }
 
-        /* 画布样式 */
-        #canvas-container {
-            width: 100%;
-            height: 100%;
-            position: absolute;
-            top: 0;
-            left: 0;
-            z-index: 1;
-        }
+      /* 阶段主题颜色 */
+      body.theme-0 {
+        background-color: #000000;
+        color: #ffffff;
+      }
+      body.theme-1 {
+        background-color: #0f1115;
+        color: #c0c0c0;
+      }
+      body.theme-2 {
+        background-color: #1a0505;
+        color: #d6b4b4;
+      }
+      body.theme-3 {
+        background-color: #2a2a35;
+        color: #d0d0d0;
+      }
+      body.theme-4 {
+        background-color: #f7f7f2;
+        color: #2c2c2c;
+      }
+      body.theme-5 {
+        background-color: #050505;
+        color: #ffffff;
+      }
 
-        /* UI 叠加层样式 */
-        #ui-layer {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 2;
-            text-align: center;
-            color: #ffffff;
-            pointer-events: none; /* 让鼠标事件穿透UI层直达Canvas */
-            mix-blend-mode: overlay; /* 混合模式增加融合感 */
+      /* --- 特效层：雪花 (theme-1) --- */
+      #snow-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        pointer-events: none;
+        z-index: 1;
+        opacity: 0;
+        transition: opacity 2s ease;
+      }
+      body.theme-1 #snow-container {
+        opacity: 1;
+      }
+      .snowflake {
+        position: absolute;
+        background: #fff;
+        border-radius: 50%;
+        box-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
+      }
+      @keyframes fall {
+        0% {
+          top: -10px;
         }
+        100% {
+          top: 100vh;
+        }
+      }
+      @keyframes sway {
+        0% {
+          transform: translateX(-15px);
+        }
+        100% {
+          transform: translateX(15px);
+        }
+      }
 
-        h1 {
-            font-size: 4rem;
-            letter-spacing: 0.5rem;
-            margin: 0;
-            text-transform: uppercase;
-            text-shadow: 0 0 20px rgba(0, 255, 255, 0.8), 0 0 40px rgba(0, 255, 255, 0.4);
-            animation: pulse 3s infinite ease-in-out;
+      /* --- 特效层：偏执心跳 (theme-2) --- */
+      #paranoia-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        pointer-events: none;
+        z-index: 1;
+        opacity: 0;
+        background: radial-gradient(
+          circle,
+          transparent 40%,
+          rgba(150, 0, 0, 0.5) 100%
+        );
+        transition: opacity 2s ease;
+      }
+      body.theme-2 #paranoia-overlay {
+        opacity: 1;
+        animation: heartbeat 3s infinite ease-in-out;
+      }
+      @keyframes heartbeat {
+        0% {
+          opacity: 0.5;
+          transform: scale(1);
         }
+        50% {
+          opacity: 1;
+          transform: scale(1.05);
+          box-shadow: inset 0 0 50px rgba(100, 0, 0, 0.8);
+        }
+        100% {
+          opacity: 0.5;
+          transform: scale(1);
+        }
+      }
 
-        p {
-            font-size: 1.2rem;
-            color: #00ffff;
-            letter-spacing: 0.2rem;
-            margin-top: 1rem;
-            opacity: 0.8;
-        }
+      /* 文本内容容器 */
+      .container {
+        width: 88%;
+        max-width: 650px;
+        text-align: left;
+        line-height: 2.2;
+        font-size: 1.15em;
+        z-index: 10;
+      }
 
-        .border-line {
-            width: 100px;
-            height: 2px;
-            background: #00ffff;
-            margin: 20px auto;
-            box-shadow: 0 0 10px #00ffff;
-        }
+      /* 动画过渡控制 */
+      .fade-container {
+        opacity: 0;
+        transition:
+          opacity 1.5s ease-in-out,
+          transform 1.5s ease-in-out;
+        transform: translateY(15px);
+      }
+      .fade-container.visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
 
-        /* 简单的呼吸动画 */
-        @keyframes pulse {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.8; transform: scale(0.98); }
+      p {
+        margin-bottom: 20px;
+        text-indent: 2em;
+      }
+
+      .title {
+        text-align: center;
+        font-size: 1.8em;
+        letter-spacing: 4px;
+        margin-bottom: 20px;
+        line-height: 1.5;
+      }
+      .highlight {
+        font-style: italic;
+        opacity: 0.9;
+      }
+      .theme-2 .highlight {
+        color: #cc4444;
+      }
+      .theme-4 .highlight {
+        font-weight: bold;
+      }
+      .signature {
+        text-align: right;
+        margin-top: 40px;
+        font-size: 1.1em;
+        opacity: 0.8;
+        font-style: italic;
+      }
+
+      /* theme-5 结局图片样式 */
+      .end-image-box {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+        height: 100%;
+      }
+      .end-image {
+        max-width: 100%;
+        max-height: 65vh;
+        object-fit: contain;
+        border-radius: 8px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      /* 底部点击提示 */
+      .click-hint {
+        position: absolute;
+        bottom: 30px;
+        width: 100%;
+        text-align: center;
+        font-size: 0.85em;
+        opacity: 0.5;
+        z-index: 10;
+        animation: pulse 2s infinite;
+      }
+      @keyframes pulse {
+        0% {
+          opacity: 0.2;
+          transform: translateY(0);
         }
+        50% {
+          opacity: 0.8;
+          transform: translateY(-5px);
+        }
+        100% {
+          opacity: 0.2;
+          transform: translateY(0);
+        }
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body class="theme-0" onclick="nextPage()">
+    <!-- 特效背景层 -->
+    <div id="snow-container"></div>
+    <div id="paranoia-overlay"></div>
 
-    <!-- 3D 容器 -->
-    <div id="canvas-container"></div>
+    <!-- BGM 音频标签：仅保留 bgm1 (通用) 和 bgm5 (结局) -->
+    <audio id="bgm1" src="bgm1.mp3" loop></audio>
+    <audio id="bgm5" src="bgm5.mp3" loop></audio>
 
-    <!-- UI 内容 -->
-    <div id="ui-layer">
-        <h1>CORE SYSTEM</h1>
-        <div class="border-line"></div>
-        <p>INITIALIZING DATA STREAM...</p>
+    <!-- 主显示区域 -->
+    <div class="container fade-container visible" id="text-box">
+      <div class="title">雪落三万六千年<br />终见岸头无我</div>
+      <p
+        style="
+          text-align: center;
+          text-indent: 0;
+          font-size: 0.8em;
+          opacity: 0.6;
+          margin-top: 40px;
+        "
+      >
+        （请开启声音，点击屏幕展开信件）
+      </p>
     </div>
 
-    <!-- 引入 Three.js (通过 CDN) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- 底部提示 -->
+    <div class="click-hint" id="hint">点击屏幕继续阅读</div>
 
     <script>
-        // --- 1. 初始化场景 ---
-        const scene = new THREE.Scene();
-        // 添加一点背景雾化效果，增加深邃感
-        scene.fog = new THREE.FogExp2(0x050505, 0.002);
+      // 动态生成雪花特效
+      function createSnow() {
+        const container = document.getElementById("snow-container");
+        const flakeCount = 40;
+        for (let i = 0; i < flakeCount; i++) {
+          let snow = document.createElement("div");
+          snow.className = "snowflake";
+          let size = Math.random() * 3 + 2;
+          snow.style.width = size + "px";
+          snow.style.height = size + "px";
+          snow.style.left = Math.random() * 100 + "vw";
+          snow.style.opacity = Math.random() * 0.5 + 0.3;
 
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.z = 30;
+          let duration = Math.random() * 5 + 6;
+          let delay = Math.random() * 5;
 
-        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(window.devicePixelRatio);
-        document.getElementById('canvas-container').appendChild(renderer.domElement);
+          snow.style.animation = `fall ${duration}s linear ${delay}s infinite, sway 3s ease-in-out ${delay}s infinite alternate`;
+          container.appendChild(snow);
+        }
+      }
+      createSnow();
 
-        // --- 2. 创建粒子系统 ---
-        const particlesGeometry = new THREE.BufferGeometry();
-        const particlesCount = 7000; // 粒子数量
+      // 剧情文本数据
+      // 注意：前 9 页全部使用 bgm1，只有最后一页使用 bgm5
+      const storyPages = [
+        {
+          theme: "theme-1",
+          bgm: "bgm1",
+          content: `
+                <p style="text-indent: 0;">卿卿，展信安。</p>
+                <p>指尖抚过信纸，墨香尚凝，窗外便落了今冬第一场雪。细碎的雪粒敲打着窗棂，恍惚间，竟似重临故事里那场绵延了三万六千年的风雪。</p>
+                <p>那时不懂，只觉风雪漫天，遮了前路，迷了本心；如今再想，才惊觉每一片漫天飞舞的雪花，都是你我藏在岁月里，未曾说破的禅意偈语。</p>
+            `,
+        },
+        {
+          theme: "theme-1",
+          bgm: "bgm1",
+          content: `
+                <p>我是白怜，是那个在苦海边执伞伫立，等你归期的痴人；是浴血沙场后，望断天涯寻你身影的过客；是在十世轮回里，饮过恨别苦酒，也跪过奈何桥头的执念者。</p>
+                <p>可我亦是那个，曾与你并肩而坐，屏息静待圣母抉择，盼你能得偿所愿的偏执狂。恨过你的转身，怨过你的沉默，却也在每一次重逢里，忍不住向你奔赴。</p>
+            `,
+        },
+        {
+          theme: "theme-2",
+          bgm: "bgm1",
+          content: `
+                <p>谢谢你，陪我走完这十世苦旅。</p>
+                <p>从初见时的懵懂相携，到绝境中的生死相依，你陪我走过的每一步，都刻在了岁月深处。谢谢你为我撑起的那柄伞，替我挡了风雪，也遮了世间寒凉；</p>
+                <p>谢谢你为我剖开的那颗心，满是赤诚，无半分保留；更谢谢你最后那句温柔的“皈依吧”，让我在无尽轮回里，终于寻到了心安。</p>
+            `,
+        },
+        {
+          theme: "theme-2",
+          bgm: "bgm1",
+          content: `
+                <p>我曾困于执念，以为爱便是刻骨的纠缠，恨是情的极致延伸，以为唯有死死攥着，才算不负这场相遇。</p>
+                <p>直到目光落于你身上，看见你眼中映出菩萨低眉的温柔倒影，看见你为了成全，甘愿放下所有的模样，我才骤然懂得：</p>
+                <p><span class="highlight">原来最深的爱，从不是捆绑与占有，而是敢亲手为你解开枷锁，哪怕那枷锁的另一端，紧紧拴着我自己的灵魂。</span></p>
+            `,
+        },
+        {
+          theme: "theme-3",
+          bgm: "bgm1",
+          content: `
+                <p>可曾痛彻心扉？自然是痛。那痛如利刃剜心，如烈火灼骨，是放下执念时的撕心裂肺，是成全彼此时的万般不舍。</p>
+                <p>可这痛在心底蔓延时，竟又生出了一丝奇异的清净。</p>
+                <p>像雪落巫山，皑皑白雪覆了凡尘纷扰，只余纯粹；像莲开血海，于绝境中绽放圣洁，自带光芒；像我终于听懂了，这么多年你沉默不语里，藏着的温柔经文。</p>
+            `,
+        },
+        {
+          theme: "theme-3",
+          bgm: "bgm1",
+          content: `
+                <p>你说“色即是空”，我便在空性之中，看见汹涌而来的慈悲。</p>
+                <p>那慈悲比所有的执念都要浓烈，比所有的爱恨都要绵长，它消解了轮回的苦，也抚平了心底的疤，让我终于与自己和解，与你和解。</p>
+            `,
+        },
+        {
+          theme: "theme-4",
+          bgm: "bgm1",
+          content: `
+                <p>游戏终了，灯光亮起，我们褪去戏服，重新变回萍水相逢的圣母与圣徒，回到各自的轨道，再无纠葛，再无羁绊。</p>
+                <p>可我会永远记得：<br>记得你为我戴上玉簪子时，指尖传来的温热，那温度暖了十世风雪，暖了余生漫长；</p>
+                <p>记得你念出“我佛慈悲”时，声音里藏着的泪，与决绝的温柔，那一字一句，都刻进了我心底最柔软的地方；</p>
+            `,
+        },
+        {
+          theme: "theme-4",
+          bgm: "bgm1",
+          content: `
+                <p>记得最后那一刻，你我隔着万水千山，同时红了眼眶。原来我们都在这场名为“轮回”的游戏里，放下了执念，寻到了成全，拥有了轻装前行的勇气。</p>
+                <p>若真有平行世界，我盼白怜的小和尚，能干干净净地回到彼岸，无灾无难，喜乐无忧；盼魏玉卿的菩萨，不再受风雨侵袭，岁岁安康，自在无忧。</p>
+            `,
+        },
+        {
+          theme: "theme-4",
+          bgm: "bgm1",
+          content: `
+                <p>而你我，便如这世间寻常过客，带着这场相遇的顿悟，轻装前行。</p>
+                <p>感恩这场盛大的遇见，感恩你赠我的“苦海”与“岸”。从此之后，<span class="highlight">见山是山，见水是水，见你是你，见我是我。</span></p>
+                <p>世间万物皆归本真，而我会永远珍藏这份记忆：陪我度过最盛大的雪，教会我何为成全。</p>
+                <div class="signature">此致<br>你永远的：小和尚白怜</div>
+            `,
+        },
+        // --- 结局图片页：使用 bgm5 ---
+        {
+          theme: "theme-5",
+          bgm: "bgm5",
+          content: `
+                <div class="end-image-box">
+                    <img src="end.png" alt="结局画面" class="end-image">
+                </div>
+            `,
+        },
+      ];
 
-        const posArray = new Float32Array(particlesCount * 3); // 每个粒子有 x, y, z 坐标
+      let currentPage = -1;
+      let isFading = false;
+      let currentAudioId = null;
 
-        for(let i = 0; i < particlesCount * 3; i++) {
-            // 在一个范围内随机生成位置
-            // (Math.random() - 0.5) 生成 -0.5 到 0.5 之间的数
-            posArray[i] = (Math.random() - 0.5) * 60; 
+      // BGM 切换逻辑优化
+      function switchBgm(newAudioId) {
+        // 【关键修改】如果新旧音乐 ID 相同，直接返回，不做任何操作，保证音乐连续播放
+        if (currentAudioId === newAudioId) return;
+
+        const oldAudio = currentAudioId
+          ? document.getElementById(currentAudioId)
+          : null;
+        const newAudio = document.getElementById(newAudioId);
+
+        if (newAudio) {
+          newAudio.volume = 0;
+          let playPromise = newAudio.play();
+          if (playPromise !== undefined) {
+            playPromise.catch((error) => {
+              console.log("需交互播放");
+            });
+          }
+
+          let fadeInterval = setInterval(() => {
+            let oldDone = true;
+            let newDone = true;
+
+            // 淡出旧音乐
+            if (oldAudio && oldAudio.volume > 0.05) {
+              oldAudio.volume -= 0.05;
+              oldDone = false;
+            } else if (oldAudio) {
+              oldAudio.pause();
+              oldAudio.currentTime = 0; // 可选：重置旧音乐进度
+              oldAudio.volume = 1;
+            }
+
+            // 淡入新音乐
+            if (newAudio.volume < 0.95) {
+              newAudio.volume += 0.05;
+              newDone = false;
+            } else {
+              newAudio.volume = 1;
+            }
+
+            if (oldDone && newDone) clearInterval(fadeInterval);
+          }, 100);
+        }
+        currentAudioId = newAudioId;
+      }
+
+      function nextPage() {
+        if (isFading) return;
+
+        currentPage++;
+
+        if (currentPage >= storyPages.length) {
+          document.getElementById("hint").style.display = "none";
+          return;
         }
 
-        particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+        const pageData = storyPages[currentPage];
+        const textBox = document.getElementById("text-box");
 
-        // 粒子材质
-        const particlesMaterial = new THREE.PointsMaterial({
-            size: 0.15,
-            color: 0x00ffff, // 青色，科技感的代表色
-            transparent: true,
-            opacity: 0.8,
-            blending: THREE.AdditiveBlending // 叠加混合模式，让重叠的粒子发光
-        });
+        isFading = true;
+        textBox.classList.remove("visible");
 
-        // 创建粒子网格
-        const particlesMesh = new THREE.Points(particlesGeometry, particlesMaterial);
-        scene.add(particlesMesh);
+        setTimeout(() => {
+          textBox.innerHTML = pageData.content;
+          document.body.className = pageData.theme;
 
-        // --- 3. 创建辅助几何体（可选，增加层次感） ---
-        // 这是一个外围的线框球体
-        const geometrySphere = new THREE.IcosahedronGeometry(20, 1);
-        const materialSphere = new THREE.MeshBasicMaterial({ 
-            color: 0x00aaff, 
-            wireframe: true, 
-            transparent: true, 
-            opacity: 0.1 
-        });
-        const wireframeSphere = new THREE.Mesh(geometrySphere, materialSphere);
-        scene.add(wireframeSphere);
+          // 调用切换函数（如果是同一首 bgm1，函数内部会直接跳过，实现无缝）
+          switchBgm(pageData.bgm);
 
+          if (pageData.theme === "theme-5") {
+            textBox.style.width = "95%";
+            document.getElementById("hint").innerHTML = "终";
+            document.getElementById("hint").style.animation = "none";
+            document.getElementById("hint").style.opacity = "0.2";
+          } else {
+            // 如果不是最后一页，重置容器宽度以适应文字
+            textBox.style.width = "88%";
+          }
 
-        // --- 4. 交互逻辑 (鼠标移动) ---
-        let mouseX = 0;
-        let mouseY = 0;
-        let targetX = 0;
-        let targetY = 0;
-
-        const windowHalfX = window.innerWidth / 2;
-        const windowHalfY = window.innerHeight / 2;
-
-        document.addEventListener('mousemove', (event) => {
-            mouseX = (event.clientX - windowHalfX);
-            mouseY = (event.clientY - windowHalfY);
-        });
-
-        // --- 5. 动画循环 ---
-        const clock = new THREE.Clock();
-
-        function animate() {
-            requestAnimationFrame(animate);
-
-            const elapsedTime = clock.getElapsedTime();
-
-            // 粒子自身缓慢旋转
-            particlesMesh.rotation.y = elapsedTime * 0.05;
-            particlesMesh.rotation.x = elapsedTime * 0.02;
-
-            // 线框球体反向旋转
-            wireframeSphere.rotation.y = elapsedTime * -0.1;
-
-            // 鼠标交互带来的平滑移动 (Lerp插值)
-            targetX = mouseX * 0.001;
-            targetY = mouseY * 0.001;
-
-            // 让场景随鼠标轻微倾斜
-            particlesMesh.rotation.y += 0.05 * (targetX - particlesMesh.rotation.y);
-            particlesMesh.rotation.x += 0.05 * (targetY - particlesMesh.rotation.x);
-
-            // 让整个粒子波浪起伏 (可选，增加动态感)
-            // 访问位置属性并修改 (性能消耗较大，这里仅做整体旋转，不做逐点动画以保证流畅度)
-
-            renderer.render(scene, camera);
-        }
-
-        animate();
-
-        // --- 6. 窗口大小调整适配 ---
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
+          setTimeout(() => {
+            textBox.classList.add("visible");
+            isFading = false;
+          }, 100);
+        }, 1500);
+      }
     </script>
-</body>
+  </body>
 </html>
